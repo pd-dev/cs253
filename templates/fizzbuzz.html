@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+
+{% block body_block %}
+<form>
+    <ol>
+    {% for x in range(1, n+1) %}
+        <li>
+        {% if 0 == x % 15 %}
+            FizzBuzz
+        {% elif 0 == x % 3 %}
+            Fizz
+        {% elif 0 == x % 5 %}
+            Buzz
+        {% else %}
+            {{x}}
+        {% endif %}
+        </li>
+    {% endfor %}
+    </ol>
+</form>
+{% endblock %}
