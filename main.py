@@ -29,6 +29,7 @@ app = webapp2.WSGIApplication([
     ('/blog/newpost', blogNewPostHandler),
     ('/blog/signup', blogSignupHandler),
     ('/blog/(\d+)', blogPostHandler),
+    ('/blog/(\d+).json', blogPostJsonHandler),
     ('/blog/welcome', blogWelcomHandler),
     ('/blog/login', blogLoginHandler),
     ('/blog/logout', blogLogoutHandler),

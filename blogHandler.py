@@ -7,6 +7,7 @@ import re
 import time
 import random
 import string
+import json
 import hmac
 import hashlib
 from google.appengine.ext import db
@@ -87,6 +88,8 @@ class blogHandler(JHandler):
         blog_id = blog.key().id()
         post_path = '/blog/'+str(blog_id)
 
+        time.sleep(0.1) # the datastore may not updated right after put()
+
         self.redirect(post_path)
 
 
@@ -111,21 +114,46 @@ class blogNewPostHandler(JHandler):
         blog_id = blog.key().id()
         post_path = '/blog/'+str(blog_id)
 
+        time.sleep(0.1) # the datastore may not updated right after put()
+
         self.redirect(post_path)
 
 
 class blogPostHandler(JHandler):
     def get(self, id):
-        time.sleep(0.1) # the datastore may not updated right after put()
-
         getStr = "select * from BlogData where __key__ = KEY('BlogData', {id})".format(id=id)
         blogs = db.GqlQuery(getStr)
 
         if 0 == blogs.count():
-            self.response.write("You are not supposed to be here..."+getStr)
+            self.response.write("You are not supposed to be here... "+id)
             return
 
         self.render('blog-post.html', blogs=blogs)
+
+
+class blogPostJsonHandler(JHandler):
+    def get(self, postId):
+        postId = postId.split('.')[0]
+        #5733953138851840
+
+        getStr = "select * from BlogData where __key__ = KEY('BlogData', {id})".format(id=postId)
+        blogs = db.GqlQuery(getStr)
+
+        if 0 == blogs.count():
+            self.response.write("You are not supposed to be here... "+postId)
+            return
+
+        blog = blogs[0]
+
+        jsonObject = {}
+        jsonObject['subject'] = blog.subject
+        jsonObject['content'] = blog.content
+        jsonObject['created'] = blog.created.strftime('%a %b %d %H:%M:%S %Y')
+        #jsonObject['created'] = blog.created
+
+        self.response.headers['Content-Type'] = 'application/json'
+        self.response.write(json.dumps(jsonObject, encoding='utf-8'))
+        return
 
 
 # /blog/signup
