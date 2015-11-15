@@ -131,6 +131,30 @@ class blogPostHandler(JHandler):
         self.render('blog-post.html', blogs=blogs)
 
 
+class blogJsonHandler(JHandler):
+    def getJsonbyBlogs(self, blogs):
+        jsonList = []
+        for blog in blogs:
+            jsonDict = {}
+            jsonDict['subject'] = blog.subject
+            jsonDict['content'] = blog.content
+            jsonDict['created'] = blog.created.strftime('%a %b %d %H:%M:%S %Y')
+
+            jsonList.append(jsonDict)
+        return json.dumps(jsonList, encoding='utf-8')
+
+    def get(self):
+        getStr = "select * from BlogData order by created desc limit 20"
+        blogs = db.GqlQuery(getStr)
+
+        blog = blogs[0]
+        jsonString = self.getJsonbyBlogs(blogs)
+
+        self.response.headers['Content-Type'] = 'application/json'
+        self.response.write(jsonString)
+        return
+
+
 class blogPostJsonHandler(JHandler):
     def get(self, postId):
         postId = postId.split('.')[0]
@@ -144,12 +168,10 @@ class blogPostJsonHandler(JHandler):
             return
 
         blog = blogs[0]
-
         jsonObject = {}
         jsonObject['subject'] = blog.subject
         jsonObject['content'] = blog.content
         jsonObject['created'] = blog.created.strftime('%a %b %d %H:%M:%S %Y')
-        #jsonObject['created'] = blog.created
 
         self.response.headers['Content-Type'] = 'application/json'
         self.response.write(json.dumps(jsonObject, encoding='utf-8'))
