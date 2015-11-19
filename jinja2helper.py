@@ -25,3 +25,4 @@ class JHandler(webapp2.RequestHandler):
     def set_cookie(self, name, value, path='/'):
         self.response.headers.add_header('Set-Cookie', '{name}={value}; Path={path}'
             .format(name=name, value=value, path=path))
+

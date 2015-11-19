@@ -66,25 +66,40 @@ def valid_pw(name, pw, h):
 
 
 #####################################################
-def blogSubmit(handler, blogs):
-    subject = handler.request.get('subject')
-    content = handler.request.get('content')
 
-    if not (subject and content):
-        handler.render_main(subject, content, "标题内容都要写 - need both subject & content", blogs=blogs)
-        return
 
-    blog = BlogData(subject=subject, content=content)
-    blog.put()
+class blogBaseHandler(JHandler):
+    def blogSubmit(self, blogs=iter([])):
+        subject = self.request.get('subject')
+        content = self.request.get('content')
 
-    time.sleep(0.1) # the datastore may not updated right after put()
+        if not (subject and content):
+            self.render_main(subject, content, "标题内容都要写 - need both subject & content", blogs=blogs)
+            return
 
-    handler.getBlogs(True)
-    return blog
+        blog = BlogData(subject=subject, content=content)
+        blog.put()
 
-class blogHandler(JHandler):
-    def render_main(self, subject='', content='', error='', blogs=iter([]), last_update=''):
-        self.render('blog-main.html', subject=subject, content=content, error=error.decode("utf-8"), blogs=blogs, last_update=last_update)
+        time.sleep(0.1) # the datastore may not updated right after put()
+
+        self.getBlogs(True)
+
+        return blog
+
+    def getBlog(self, postId, update=False):
+        blogkey = 'blog_post_'+postId
+        blogUpdatekey = 'blog_updated_'+postId
+        blog = memcache.get(blogkey)
+        if ((blog is None) or update):
+            getStr = "select * from BlogData where __key__ = KEY('BlogData', {id})".format(id=postId)
+            blogs = db.GqlQuery(getStr)
+            if 0 == blogs.count():
+                return None, ''
+            blog = blogs[0]
+            memcache.set(blogkey, blog)
+            memcache.set(blogUpdatekey, time.time())
+        lastUpdate = time.time()-memcache.get(blogUpdatekey)
+        return blog, str(lastUpdate)
 
     def getBlogs(self, update=False):
         key = 'top_blogs'
@@ -101,6 +116,11 @@ class blogHandler(JHandler):
         lastUpdate = time.time()-memcache.get('top_blogs_last_update')
         return blogs, str(lastUpdate)
 
+
+class blogHandler(blogBaseHandler):
+    def render_main(self, subject='', content='', error='', blogs=iter([]), last_update=''):
+        self.render('blog-main.html', subject=subject, content=content, error=error.decode("utf-8"), blogs=blogs, last_update=last_update)
+
     def get(self):
         blogs, lastUpdate = self.getBlogs()
         self.render_main(blogs=blogs, last_update=lastUpdate)
@@ -108,7 +128,7 @@ class blogHandler(JHandler):
     def post(self):
         blogs, lastUpdate = self.getBlogs()
 
-        blog = blogSubmit(self, blogs)
+        blog = self.blogSubmit(blogs)
 
         blog_id = blog.key().id()
         post_path = '/blog/'+str(blog_id)
@@ -116,7 +136,7 @@ class blogHandler(JHandler):
         self.redirect(post_path)
 
 
-class blogNewPostHandler(JHandler):
+class blogNewPostHandler(blogBaseHandler):
     def render_main(self, subject='', content='', error='', last_update='0'):
         self.render('blog-main.html', subject=subject, content=content, error=error.decode("utf-8"), last_update=last_update)
 
@@ -124,7 +144,7 @@ class blogNewPostHandler(JHandler):
         self.render_main()
 
     def post(self):
-    	blog = blogSubmit(self, blogs)
+    	blog = self.blogSubmit()
 
         blog_id = blog.key().id()
         post_path = '/blog/'+str(blog_id)
@@ -132,19 +152,18 @@ class blogNewPostHandler(JHandler):
         self.redirect(post_path)
 
 
-class blogPostHandler(JHandler):
+class blogPostHandler(blogBaseHandler):
     def get(self, id):
-        getStr = "select * from BlogData where __key__ = KEY('BlogData', {id})".format(id=id)
-        blogs = db.GqlQuery(getStr)
+        blog, last_update = self.getBlog(id)
 
-        if 0 == blogs.count():
+        if None == blog:
             self.response.write("You are not supposed to be here... "+id)
             return
 
-        self.render('blog-post.html', blogs=blogs)
+        self.render('blog-post.html', blogs=[blog], last_update=last_update)
 
 
-class blogJsonHandler(JHandler):
+class blogJsonHandler(blogBaseHandler):
     def getJsonbyBlogs(self, blogs):
         jsonList = []
         for blog in blogs:
@@ -168,19 +187,17 @@ class blogJsonHandler(JHandler):
         return
 
 
-class blogPostJsonHandler(JHandler):
+class blogPostJsonHandler(blogBaseHandler):
     def get(self, postId):
         postId = postId.split('.')[0]
         #5733953138851840
 
-        getStr = "select * from BlogData where __key__ = KEY('BlogData', {id})".format(id=postId)
-        blogs = db.GqlQuery(getStr)
+        blog, last_update = self.getBlog(postId)
 
-        if 0 == blogs.count():
+        if None == blog:
             self.response.write("You are not supposed to be here... "+postId)
             return
 
-        blog = blogs[0]
         jsonObject = {}
         jsonObject['subject'] = blog.subject
         jsonObject['content'] = blog.content
@@ -192,7 +209,7 @@ class blogPostJsonHandler(JHandler):
 
 
 # /blog/signup
-class blogSignupHandler(JHandler):
+class blogSignupHandler(blogBaseHandler):
     def render_page(self, username='', email='', error_username='', error_password='', error_verify='', error_email=''):
         self.render('blog-signup.html', username=username, email=email,
          error_username=error_username, error_password=error_password, error_verify=error_verify, error_email=error_email)
@@ -258,7 +275,7 @@ class blogSignupHandler(JHandler):
                 error_username=info_user, error_password=info_pwd, error_verify=info_verify, error_email=info_email)
 
 # /blog/welcome
-class blogWelcomHandler(JHandler):
+class blogWelcomHandler(blogBaseHandler):
     def render_page(self, username=''):
         self.render('blog-welcome.html', username=username)
 
@@ -276,7 +293,7 @@ class blogWelcomHandler(JHandler):
             self.render_page(username=user)
 
 # /blog/login
-class blogLoginHandler(JHandler):
+class blogLoginHandler(blogBaseHandler):
     def render_page(self, username='', error=''):
         self.render('blog-login.html', username=username, error=error)
 
@@ -307,7 +324,7 @@ class blogLoginHandler(JHandler):
         self.redirect('/blog/welcome')
 
 # /blog/logout
-class blogLogoutHandler(JHandler):
+class blogLogoutHandler(blogBaseHandler):
     def get(self):
         self.set_cookie('user', '')
         self.redirect('/blog/signup')
