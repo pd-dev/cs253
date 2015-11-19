@@ -10,7 +10,12 @@ import string
 import json
 import hmac
 import hashlib
+import logging
+import time
+import datetime
+from google.appengine.api import memcache
 from google.appengine.ext import db
+
 
 from jinja2helper import JHandler
 
@@ -61,60 +66,68 @@ def valid_pw(name, pw, h):
 
 
 #####################################################
+def blogSubmit(handler, blogs):
+    subject = handler.request.get('subject')
+    content = handler.request.get('content')
+
+    if not (subject and content):
+        handler.render_main(subject, content, "标题内容都要写 - need both subject & content", blogs=blogs)
+        return
+
+    blog = BlogData(subject=subject, content=content)
+    blog.put()
+
+    time.sleep(0.1) # the datastore may not updated right after put()
+
+    handler.getBlogs(True)
+    return blog
 
 class blogHandler(JHandler):
-    def render_main(self, subject='', content='', error='', blogs=iter([])):
-        self.render('blog-main.html', subject=subject, content=content, error=error.decode("utf-8"), blogs=blogs)
+    def render_main(self, subject='', content='', error='', blogs=iter([]), last_update=''):
+        self.render('blog-main.html', subject=subject, content=content, error=error.decode("utf-8"), blogs=blogs, last_update=last_update)
+
+    def getBlogs(self, update=False):
+        key = 'top_blogs'
+
+        blogs = memcache.get(key)
+        if ((blogs is None) or update):
+            getStr = "select * from BlogData order by created desc limit 20"
+            blogs = db.GqlQuery(getStr)
+            blogs = list(blogs)
+            memcache.set(key, blogs)
+
+            # update time
+            memcache.set('top_blogs_last_update', time.time())
+        lastUpdate = time.time()-memcache.get('top_blogs_last_update')
+        return blogs, str(lastUpdate)
 
     def get(self):
-        getStr = "select * from BlogData order by created desc limit 20"
-        blogs = db.GqlQuery(getStr)
-        self.render_main(blogs=blogs)
+        blogs, lastUpdate = self.getBlogs()
+        self.render_main(blogs=blogs, last_update=lastUpdate)
 
     def post(self):
-        getStr = "select * from BlogData order by created desc limit 20"
-        blogs = db.GqlQuery(getStr)
+        blogs, lastUpdate = self.getBlogs()
 
-        subject = self.request.get('subject')
-        content = self.request.get('content')
-
-        if not (subject and content):
-            self.render_main(subject, content, "标题内容都要写 - need both subject & content", blogs=blogs)
-            return
-
-        blog = BlogData(subject=subject, content=content)
-        blog.put()
+        blog = blogSubmit(self, blogs)
 
         blog_id = blog.key().id()
         post_path = '/blog/'+str(blog_id)
-
-        time.sleep(0.1) # the datastore may not updated right after put()
 
         self.redirect(post_path)
 
 
 class blogNewPostHandler(JHandler):
-    def render_main(self, subject='', content='', error=''):
-        self.render('blog-main.html', subject=subject, content=content, error=error.decode("utf-8"))
+    def render_main(self, subject='', content='', error='', last_update='0'):
+        self.render('blog-main.html', subject=subject, content=content, error=error.decode("utf-8"), last_update=last_update)
 
     def get(self):
         self.render_main()
 
     def post(self):
-        subject = self.request.get('subject')
-        content = self.request.get('content')
-
-        if not (subject and content):
-            self.render_main(subject, content, "标题内容都要写 - need both subject & content")
-            return
-
-        blog = BlogData(subject=subject, content=content)
-        blog.put()
+    	blog = blogSubmit(self, blogs)
 
         blog_id = blog.key().id()
         post_path = '/blog/'+str(blog_id)
-
-        time.sleep(0.1) # the datastore may not updated right after put()
 
         self.redirect(post_path)
 
