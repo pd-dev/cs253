@@ -34,6 +34,7 @@ app = webapp2.WSGIApplication([
     ('/blog/welcome', blogWelcomHandler),
     ('/blog/login', blogLoginHandler),
     ('/blog/logout', blogLogoutHandler),
+    ('/blog/flush', blogFlushHandler),
     ('/radio', radioHandler),
     ('/google', googleHandler),
     ('/test1', ShowRequest),

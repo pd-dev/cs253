@@ -328,3 +328,13 @@ class blogLogoutHandler(blogBaseHandler):
     def get(self):
         self.set_cookie('user', '')
         self.redirect('/blog/signup')
+
+# /blog/flush
+class blogFlushHandler(blogBaseHandler):
+    def get(self):
+        memcache.flush_all()
+
+        self.redirect('/blog')
+        return
+
+
