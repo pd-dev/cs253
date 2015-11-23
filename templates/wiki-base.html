@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+
+
+<html>
+    <head>
+        <link type="text/css" rel="stylesheet" href="/static/main.css"/>
+        <!-- meta http-equiv="content-type" content="text/html; charset=UTF-8"-->
+        <title>PD Wiki - Udacity cs253 final</title>
+    </head>
+
+    <body>
+        <div class="login-area">
+            <a class="login-link" href='/edit'>Edit</a>&nbsp;&nbsp;&nbsp;&nbsp;
+            {% if user %}
+                {{user.name}} (<a class="login-link" href="/wiki/logout">logout</a>)
+            {% else %}
+                <a class="login-link" href="/wiki/login">login</a>
+                |
+                <a class="login-link" href="/wiki/signup">signup</a>
+            {% endif %}
+        </div>
+
+        <div class="textarea" id="content">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </body>
+
+</html>
