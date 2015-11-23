@@ -2,11 +2,10 @@
 
 <html>
   <head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <title>Unit 2 Sign Up</title>
+    <title>Sign Up</title>
     <style type="text/css">
-      .label {{text-align: right}}
-      .error {{color: red}}
+      .label {text-align: right}
+      .error {color: red}
     </style>
 
   </head>
@@ -20,10 +19,10 @@
             Username
           </td>
           <td>
-            <input type="text" name="username" value="{username}">
+            <input type="text" name="username" value="{{username}}">
           </td>
           <td class="error">
-            {error_username}
+            {{error_username}}
           </td>
         </tr>
 
@@ -35,7 +34,7 @@
             <input type="password" name="password" value="">
           </td>
           <td class="error">
-            {error_password}
+            {{error_password}}
           </td>
         </tr>
 
@@ -47,7 +46,7 @@
             <input type="password" name="verify" value="">
           </td>
           <td class="error">
-            {error_verify}
+            {{error_verify}}
           </td>
         </tr>
 
@@ -56,10 +55,10 @@
             Email (optional)
           </td>
           <td>
-            <input type="text" name="email" value="{email}">
+            <input type="text" name="email" value="{{email}}">
           </td>
           <td class="error">
-            {error_email}
+            {{error_email}}
           </td>
         </tr>
       </table>

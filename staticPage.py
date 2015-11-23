@@ -87,7 +87,7 @@ class FizzBuzzHandler(JHandler):
         self.render('fizzbuzz.html', n = n)
 
 #url: /signup
-class signUpHandler(webapp2.RequestHandler):
+class staticSignUpHandler(webapp2.RequestHandler):
 
     def valid_username(self, username):
         USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
