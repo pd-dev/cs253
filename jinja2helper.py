@@ -4,6 +4,7 @@
 
 import os
 import json
+import logging
 
 import webapp2
 import jinja2
@@ -75,6 +76,12 @@ class User(db.Model):
     ###
     db_group = 'default'
     db_path = 'users'
+
+    @classmethod
+    def set_db_parent(cls, db_group, db_path):
+        cls.db_group = db_group
+        cls.db_path = db_path
+        return
 
     @classmethod
     def users_key(cls):

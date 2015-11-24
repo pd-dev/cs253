@@ -1,8 +1,11 @@
 {% extends "wiki-base.html" %}
 
+{% block headlink %}
+            <a class="login-link" href='/wiki{{url}}'>View</a>&nbsp;&nbsp;&nbsp;&nbsp;
+{% endblock %}
+
 {% block content %}
-    <h1>page:{{page}}</h1>
-    <p></p>
+    <h1>Final Edit Page</h1>
 
     <form method="post">
       <label>

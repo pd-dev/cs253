@@ -13,30 +13,37 @@ from utils import *
 from jinja2helper import *
 
 
-class WikiContent(db.Model):
-    title = db.StringProperty(required = True)
-    html = db.TextProperty(required=True)
+class WikiPage(db.Model):
+    url = db.StringProperty(required = True)
+    content = db.TextProperty(required=True)
     created = db.DateTimeProperty(auto_now_add=True)
     last_modified = db.DateTimeProperty(auto_now = True)
 
 
 class WikiUser(User):
-    db_group = 'default'
-    db_path = 'wiki_users'
+    User.set_db_parent('default', 'wiki_users')
+    #User.db_group = 'default'
+    #User.db_path = 'wiki_users'
 
 
 
 #####################################################
 
 class wikiHandler(JHandler):
-    def get_page(self, page, update=False):
-        key_wikiPage = 'wikiPage/'+page
+    def get_page(self, url, update=False):
+        key_wikiPage = 'wikiPage/'+url
 
         p, age = age_get(key_wikiPage)
         if ((p is None) or update):
-            p = WikiContent.all().filter('title =', page).get()
+            p = WikiPage.all().filter('url =', url).get()
             age_set(key_wikiPage, p)
         return p, age
+
+    def set_page(self, page):
+        page.put()
+        key_wikiPage = 'wikiPage/'+page.url
+        age_set(key_wikiPage, page)
+        return
 
 
 # /wiki/signup
@@ -49,6 +56,7 @@ class wikiSignup(SignupHandler):
             self.render('signup-form.html', error_username = msg)
         else:
             u = WikiUser.register(self.username, self.password, self.email)
+            logging.error('newUser:'+str(u))
             u.put()
 
             self.login(u)
@@ -82,29 +90,44 @@ class wikiLogout(wikiHandler):
 
 # /wiki/_edit/*
 class wikiEditPage(wikiHandler):
-    def get(self, page):
-        p, age = self.get_page(page)
+    def get(self, url):
+        p, age = self.get_page(url)
         if p is None: p = ''
-        self.render('wiki-edit.html', page=page, content=p)
+        self.render('wiki-edit.html', url=url, content=p.content)
+
+    def post(self, url):
+        content = self.request.get('content')
+        p, age = self.get_page(url)
+        if p is None:
+            p = WikiPage(url=url, content=content)
+        else:
+            p.content = content
+        self.set_page(p)
+
+        # update may not work, cause a query() right after a put() may get None
+        #p.put()
+        #self.get_page(url, update=True)
+
+        self.redirect('/wiki'+url)
 
     '''
-    def get(self, page):
-        self.response.write('wikiEditPage "{page}"'.format(page=page))
+    def get(self, url):
+        self.response.write('wikiEditPage "{url}"'.format(url=url))
     '''
 
 
 # /wiki/*
 class wikiPage(wikiHandler):
-    def get(self, page):
-        p, age = self.get_page(page)
+    def get(self, url):
+        p, age = self.get_page(url)
         if p is None:
-            self.redirect('/wiki/_edit'+page)
+            self.redirect('/wiki/_edit'+url)
         else:
-            self.render('wiki-view.html', page=page)
+            self.render('wiki-view.html', url=url, content=p.content)
 
     '''
-    def get(self, page):
-        self.response.write('wikiPage "{page}"'.format(page=page))
+    def get(self, url):
+        self.response.write('wikiPage "{url}"'.format(url=url))
     '''
 
 

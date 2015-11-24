@@ -1,9 +1,11 @@
 {% extends "wiki-base.html" %}
 
-{% block content %}
-    <h1>page:{{page}}</h1>
-    <p></p>
+{% block headlink %}
+            <a class="login-link" href='/wiki/_edit{{url}}'>Edit</a>&nbsp;&nbsp;&nbsp;&nbsp;
+{% endblock %}
 
+{% block content %}
     <h1>Final View Page</h1>
 
+    {{content|safe}}
 {% endblock %}
