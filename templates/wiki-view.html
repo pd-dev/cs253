@@ -1,11 +1,15 @@
 {% extends "wiki-base.html" %}
 
 {% block headlink %}
+        {% if user %}
             <a class="login-link" href='/wiki/_edit{{url}}'>Edit</a>&nbsp;&nbsp;&nbsp;&nbsp;
+        {% endif %}
 {% endblock %}
 
 {% block content %}
-    <h1>Final View Page</h1>
+    <div class="textarea" id="content">
+        <h1>Final View Page</h1>
 
-    {{content|safe}}
+        {{content|safe}}
+    </div>
 {% endblock %}

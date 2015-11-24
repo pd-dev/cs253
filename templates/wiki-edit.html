@@ -5,15 +5,19 @@
 {% endblock %}
 
 {% block content %}
-    <h1>Final Edit Page</h1>
+    <div class="textarea" id="content">
+        <h1>Final Edit Page</h1>
 
-    <form method="post">
-      <label>
-        <textarea name="content">{{content}}</textarea>
-      </label>
+        {% if user %}
+            <form method="post">
+              <label>
+                <textarea name="content">{{content}}</textarea>
+              </label>
 
-      <div class="error">{{error}}</div>
+              <div class="error">{{error}}</div>
 
-      <input type="submit">
-    </form>
+              <input type="submit" value="Save">
+            </form>
+        {% endif %}
+    </div>
 {% endblock %}

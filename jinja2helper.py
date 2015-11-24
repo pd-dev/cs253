@@ -65,6 +65,9 @@ class JHandler(webapp2.RequestHandler):
         else:
             self.format = 'html'
 
+    def getReferer(self):
+        return self.request.headers.get('Referer', None)
+
 #######################################
 
 class User(db.Model):

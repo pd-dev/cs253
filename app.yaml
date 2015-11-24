@@ -2,7 +2,7 @@ application: pengdi-dev
 version: 1
 runtime: python27
 api_version: 1
-threadsafe: true
+threadsafe: yes
 
 handlers:
 - url: /favicon\.ico
@@ -20,7 +20,7 @@ handlers:
   upload: templates/(.*\.html)
   application_readable: true
 
-- url: /static(.*)
+- url: /static/(.*)
   static_files: static/\1
   upload: static/(.*)
   application_readable: true

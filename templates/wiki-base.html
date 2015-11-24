@@ -22,10 +22,13 @@
             {% endif %}
         </div>
 
-        <div class="textarea" id="content">
-            {% block content %}
-            {% endblock %}
-        </div>
+        {% block content %}
+        {% endblock %}
+
+        {% if '/' != url %}
+            <p></p>
+            <a href="/wiki/">Visit the front page</a>
+        {% endif %}
     </body>
 
 </html>
