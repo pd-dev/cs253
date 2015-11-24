@@ -63,7 +63,6 @@ class wikiSignup(SignupHandler):
             self.render('signup-form.html', error_username = msg)
         else:
             u = WikiUser.register(self.username, self.password, self.email)
-            logging.error('newUser:'+str(u))
             u.put()
 
             self.login(u)
