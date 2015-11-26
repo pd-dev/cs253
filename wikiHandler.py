@@ -19,6 +19,21 @@ class WikiPage(db.Model):
     created = db.DateTimeProperty(auto_now_add=True)
     last_modified = db.DateTimeProperty(auto_now = True)
 
+    @staticmethod
+    def parent_key(path):
+        return db.Key.from_path('/wiki'+path, 'pages')
+
+    @classmethod
+    def by_path(cls, path):
+        q = cls.all()
+        q.ancestor(cls.parent_key(path))
+        q.order("-created")
+        return q
+
+    @classmethod
+    def by_id(cls, page_id, path):
+        return cls.get_by_id(page_id, cls.parent_key(path))
+
 
 class WikiUser(User):
     User.set_db_parent('default', 'wiki_users')
@@ -66,7 +81,7 @@ class wikiSignup(SignupHandler):
             u.put()
 
             self.login(u)
-            self.redirect('/wiki')
+            self.redirect('/wiki/')
 
 
 # /wiki/login
@@ -111,11 +126,10 @@ class wikiEditPage(wikiHandler):
     def post(self, url):
         content = self.request.get('content')
         p, age = self.get_page(url)
-        if p is None:
-            p = WikiPage(url=url, content=content)
-        else:
-            p.content = content
-        self.set_page(p)
+
+        if (p is None) or (p.content != content):
+            p = WikiPage(url=url, content=content, parent=WikiPage.parent_key(url))
+            self.set_page(p)
 
         # update may not work, cause a query() right after a put() may get None
         #p.put()
@@ -124,6 +138,14 @@ class wikiEditPage(wikiHandler):
         self.redirect('/wiki'+url)
 
         return
+
+
+# /wiki/_history/*
+class wikiHistoryPage(wikiHandler):
+    def get(self, url):
+        pages = WikiPage.by_path(url).fetch(limit=10)
+        logging.error(len(pages))
+        self.render('wiki-history.html', url=url, pages=pages)
 
 
 # /wiki/*

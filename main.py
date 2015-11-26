@@ -41,6 +41,7 @@ app = webapp2.WSGIApplication([
     ('/wiki/login', wikiLogin),
     ('/wiki/logout', wikiLogout),
     ('/wiki/_edit' + PAGE_RE, wikiEditPage),
+    ('/wiki/_history' + PAGE_RE, wikiHistoryPage),
     ('/wiki' + PAGE_RE, wikiPage),
     ('/wiki', wikiRootPage),
 
