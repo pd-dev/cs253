@@ -68,5 +68,8 @@ def age_get(key):
         val, save_time = None, 0
     return val, save_time
 
+def age_delete(key):
+    memcache.delete(key)
+
 #######################################
 

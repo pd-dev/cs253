@@ -5,6 +5,7 @@
 
 
 import logging
+import time
 
 from google.appengine.api import memcache
 from google.appengine.ext import db
@@ -15,8 +16,9 @@ from jinja2helper import *
 
 class WikiPage(db.Model):
     url = db.StringProperty(required = True)
-    content = db.TextProperty(required=True)
-    created = db.DateTimeProperty(auto_now_add=True)
+    content = db.TextProperty(required = True)
+    version = db.IntegerProperty(default = 0)
+    created = db.DateTimeProperty(auto_now_add = True)
     last_modified = db.DateTimeProperty(auto_now = True)
 
     @staticmethod
@@ -45,20 +47,25 @@ class WikiUser(User):
 #####################################################
 
 class wikiHandler(JHandler):
-    def get_page(self, url, update=False):
+    def get_page(self, url, version=0, update=False):
         key_wikiPage = 'wikiPage/'+url
 
-        p, age = age_get(key_wikiPage)
-        if ((p is None) or update):
-            p = WikiPage.all().filter('url =', url).get()
-            age_set(key_wikiPage, p)
-        return p, age
+        pv, age = age_get(key_wikiPage)
+        if pv is not None:
+            p, get_ver = pv
+        if ((pv is None) or update or ((0 != version) and (version != get_ver))):
+            q = WikiPage.by_path(url)
+            if (q is None) or (version > q.count()):
+                return None, version, None
 
-    def set_page(self, page):
-        page.put()
-        key_wikiPage = 'wikiPage/'+page.url
-        age_set(key_wikiPage, page)
-        return
+            get_ver = q.count() if (0 == version) else version
+            p = q.get(offset=(q.count()-get_ver))
+
+            # cache latest version
+            if (get_ver == q.count()):
+                pv = p, get_ver
+                age_set(key_wikiPage, pv)
+        return p, get_ver, age
 
     def set_referer(self, referer):
         age_set('wikiReferer', referer)
@@ -116,7 +123,12 @@ class wikiLogout(wikiHandler):
 # /wiki/_edit/*
 class wikiEditPage(wikiHandler):
     def get(self, url):
-        p, age = self.get_page(url)
+        version = self.request.get('v')
+        try:
+            version = int(version)
+        except Exception, e:
+            version = 0
+        p, ver, age = self.get_page(url, version=version)
         if p is None:
             content = ''
         else:
@@ -125,33 +137,28 @@ class wikiEditPage(wikiHandler):
 
     def post(self, url):
         content = self.request.get('content')
-        p, age = self.get_page(url)
+        p, ver, age = self.get_page(url)
 
         if (p is None) or (p.content != content):
             p = WikiPage(url=url, content=content, parent=WikiPage.parent_key(url))
-            self.set_page(p)
+            p.put()
 
-        # update may not work, cause a query() right after a put() may get None
-        #p.put()
-        #self.get_page(url, update=True)
+            time.sleep(0.2)
+            self.get_page(url, update=True)
 
         self.redirect('/wiki'+url)
-
         return
-
-
-# /wiki/_history/*
-class wikiHistoryPage(wikiHandler):
-    def get(self, url):
-        pages = WikiPage.by_path(url).fetch(limit=10)
-        logging.error(len(pages))
-        self.render('wiki-history.html', url=url, pages=pages)
 
 
 # /wiki/*
 class wikiPage(wikiHandler):
     def get(self, url):
-        p, age = self.get_page(url)
+        version = self.request.get('v')
+        try:
+            version = int(version)
+        except Exception, e:
+            version = 0
+        p, ver, age = self.get_page(url, version=version)
         if p is None:
             self.redirect('/wiki/_edit'+url)
         else:
@@ -163,3 +170,14 @@ class wikiPage(wikiHandler):
 class wikiRootPage(wikiHandler):
     def get(self):
         self.redirect('/wiki/')
+        return
+
+
+# /wiki/_history/*
+class wikiHistoryPage(wikiHandler):
+    def get(self, url):
+        pages = WikiPage.by_path(url).fetch(limit=None)
+
+        for index, page in enumerate(pages):
+            page.version = len(pages)-index
+        self.render('wiki-history.html', url=url, pages=pages)

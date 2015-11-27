@@ -11,7 +11,7 @@
 {% block content %}
   <ul>
   {% for page in pages %}
-    <li>{{page.created}}&nbsp;|&nbsp;{{page.content}}&nbsp;|&nbsp;<a class="login-link" href='/wiki{{url}}?v=3'>view</a>&nbsp;|&nbsp;<a class="login-link" href='/wiki/_edit{{url}}?v=3'>edit</a></li>
+    <li>{{page.created}}&nbsp;|&nbsp;{{page.content}}&nbsp;|&nbsp;<a class="login-link" href='/wiki{{url}}?v={{page.version}}'>view</a>&nbsp;|&nbsp;<a class="login-link" href='/wiki/_edit{{url}}?v={{page.version}}'>edit</a></li>
   {% endfor %}
   </ul>
 {% endblock %}
